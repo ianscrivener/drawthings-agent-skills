@@ -1,6 +1,6 @@
 [project]
 name = "drawthings-agent-skill"
-version = "0.1.4"
+version = "0.1.5"
 description = "Standalone AI Agent skill for generating images via the DrawThings gRPC API"
 readme = "README.md"
 license = "Apache-2.0"
