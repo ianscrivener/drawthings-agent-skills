@@ -14,6 +14,9 @@ For MacOS & Linux Only.
 - **Python 3.10+**
 - **curl****
 
+## Quick Install
+ - Download the [latest zip file release](https://github.com/ianscrivener/drawthings-agent-skills/releases) & unzip in your agent's skills directory? 
+
 ## Draw Things API Server Settings
 
 > **Important** — This skill connects to Draw Things via **gRPC** (not HTTP). You must configure the API server in Draw Things to match these settings:
