@@ -77,6 +77,10 @@ jobs:
             -x "assets/proto/*" \
             -x "assets/fbs/*" \
             -x ".DS_Store" \
+            -x "build_omit.txt" \
+            -x "uv.lock" \
+            -x "metadata_template.json" \
+            -x "TODO.md" \
             -x "*/.DS_Store"
           echo "zip_name=$ZIP_NAME" >> "$GITHUB_ENV"
 
