@@ -1,0 +1,42 @@
+[project]
+name = "drawthings-agent-skill"
+version = "0.1.3"
+description = "Standalone AI Agent skill for generating images via the DrawThings gRPC API"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = [
+    "grpcio>=1.68.0",
+    "protobuf>=5.29.0",
+    "flatbuffers>=25.2.10",
+    "fpzip>=1.2.0",
+    "Pillow>=10.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "pytest-mock>=3.14",
+    "grpcio-tools>=1.68.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/drawthings"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --cov=src/drawthings --cov-report=term-missing"
+
+[dependency-groups]
+dev = [
+    "grpcio-tools>=1.80.0",
+    "numpy>=2.2.6",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+    "pytest-mock>=3.15.1",
+]

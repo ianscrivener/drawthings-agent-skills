@@ -1,0 +1,16 @@
+.git/*
+.github/*
+.venv/*
+__pycache__/*
+*/__pycache__/*
+*/*/__pycache__/*
+.coverage
+.pytest_cache/*
+tests/*
+AGENTS.md
+assets/gen_code.sh
+assets/proto/*
+assets/fbs/*
+.DS_Store
+*/.DS_Store
+build_omit.txt

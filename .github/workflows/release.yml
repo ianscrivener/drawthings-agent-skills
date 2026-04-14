@@ -1,0 +1,89 @@
+name: Create Release Zip
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Read current version
+        id: current
+        run: |
+          VERSION=$(python3 -c "
+          import re
+          with open('pyproject.toml') as f:
+              m = re.search(r'version\s*=\s*\"(.+?)\"', f.read())
+              print(m.group(1))
+          ")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Bump version
+        id: bump
+        run: |
+          IFS='.' read -r major minor patch <<< "${{ steps.current.outputs.version }}"
+          case "${{ inputs.bump }}" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+          NEW_VERSION="${major}.${minor}.${patch}"
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Bumping ${{ steps.current.outputs.version }} → $NEW_VERSION"
+
+      - name: Update pyproject.toml
+        run: |
+          sed -i 's/^version = ".*"/version = "${{ steps.bump.outputs.version }}"/' pyproject.toml
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml
+          git commit -m "Bump version to ${{ steps.bump.outputs.version }}"
+          git push
+
+      - name: Create release zip
+        run: |
+          # ZIP_NAME="drawthings-agent-skill-v${{ steps.bump.outputs.version }}.zip"
+          ZIP_NAME="drawthings.zip"
+          zip -r "$ZIP_NAME" . \
+            -x ".git/*" \
+            -x ".github/*" \
+            -x ".venv/*" \
+            -x "__pycache__/*" \
+            -x "*/__pycache__/*" \
+            -x "*/*/__pycache__/*" \
+            -x ".coverage" \
+            -x ".pytest_cache/*" \
+            -x "tests/*" \
+            -x "AGENTS.md" \
+            -x "assets/gen_code.sh" \
+            -x "assets/proto/*" \
+            -x "assets/fbs/*" \
+            -x ".DS_Store" \
+            -x "*/.DS_Store"
+          echo "zip_name=$ZIP_NAME" >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.bump.outputs.version }}
+          name: v${{ steps.bump.outputs.version }}
+          files: ${{ env.zip_name }}
+          generate_release_notes: true
