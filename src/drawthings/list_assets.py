@@ -57,14 +57,33 @@ def _format_rpc_error(exc):
     lowered = details.lower()
 
     if code == grpc.StatusCode.UNAVAILABLE:
-        if "socket closed" in lowered or "endpoint closing" in lowered:
+        protocol_mismatch_markers = (
+            "socket closed",
+            "endpoint closing",
+            "error reading server preface",
+            "server preface",
+            "frame too large",
+            "tls handshake",
+            "wrong version number",
+        )
+        if any(marker in lowered for marker in protocol_mismatch_markers):
             return (
                 "Draw Things responded on the port but rejected the gRPC request. "
                 "Check API Server settings and CLI flags: "
-                "Protocol=gRPC, --tls true, --compression false. "
+                "Protocol=gRPC, TLS=On (--tls true), Compression=Off (--compression false). "
                 f"Details: {details}"
             )
-        if "connection refused" in lowered or "failed to connect" in lowered:
+
+        connectivity_markers = (
+            "connection refused",
+            "failed to connect",
+            "no such host",
+            "name resolution",
+            "network is unreachable",
+            "no route to host",
+            "timed out",
+        )
+        if any(marker in lowered for marker in connectivity_markers):
             return (
                 "Could not connect to Draw Things gRPC server. "
                 "Verify the app is running and --host is correct. "

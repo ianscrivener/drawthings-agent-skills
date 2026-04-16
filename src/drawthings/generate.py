@@ -12,9 +12,12 @@ Outputs JSON to stdout: { "success": true, "output": "/absolute/path/to/output.p
 
 import argparse
 from datetime import datetime
+import difflib
 import json
 import os
 import sys
+
+import grpc
 
 
 DEFAULT_UPSCALE_MODEL = "4x_ultrasharp_f16.ckpt"
@@ -91,6 +94,83 @@ def _build_output_path(output_dir, file_suffix="png"):
 def _is_no_final_image_error(exc):
     msg = str(exc)
     return "Draw Things did not return a decodable final image" in msg
+
+
+def _model_label(item):
+    if isinstance(item, dict):
+        for key in ("file", "filename", "name", "api_name", "id"):
+            value = item.get(key)
+            if value:
+                return str(value)
+        return ""
+    if item:
+        return str(item)
+    return ""
+
+
+def _available_model_names(models):
+    names = []
+    for item in models or []:
+        label = _model_label(item)
+        if label:
+            names.append(label)
+    return sorted(set(names))
+
+
+def _format_rpc_error(exc):
+    code = exc.code()
+    details = exc.details() or str(exc)
+    lowered = details.lower()
+
+    if code == grpc.StatusCode.UNAVAILABLE:
+        protocol_mismatch_markers = (
+            "socket closed",
+            "endpoint closing",
+            "error reading server preface",
+            "server preface",
+            "frame too large",
+            "tls handshake",
+            "wrong version number",
+        )
+        if any(marker in lowered for marker in protocol_mismatch_markers):
+            return (
+                "Draw Things responded on the port but rejected the gRPC request. "
+                "Check API Server settings and flags: "
+                "Protocol=gRPC, TLS=On, Compression=Off. "
+                f"Details: {details}"
+            )
+
+        connectivity_markers = (
+            "connection refused",
+            "failed to connect",
+            "no such host",
+            "name resolution",
+            "network is unreachable",
+            "no route to host",
+            "timed out",
+        )
+        if any(marker in lowered for marker in connectivity_markers):
+            return (
+                "Could not connect to Draw Things gRPC server. "
+                "Verify the app is running and --host is correct. "
+                f"Details: {details}"
+            )
+
+    return f"gRPC {code.name}: {details}"
+
+
+def _validate_requested_model(svc, requested_model):
+    assets = svc.list_assets()
+    available = _available_model_names(assets.get("models", []))
+    if requested_model in available:
+        return
+
+    suggestions = difflib.get_close_matches(requested_model, available, n=3, cutoff=0.45)
+    suggestion_text = f" Closest matches: {', '.join(suggestions)}." if suggestions else ""
+    raise ValueError(
+        f"Requested model '{requested_model}' is not available on the Draw Things server."
+        f"{suggestion_text} Run list_assets.py --type models to inspect available model files."
+    )
 
 def main():
     parser = argparse.ArgumentParser(description="Generate an image from a text prompt")
@@ -172,6 +252,8 @@ def main():
             config["guidance_scale"] = args.guidance
 
         svc = DTService(args.host)
+        _validate_requested_model(svc, args.model)
+
         timeout = None if args.timeout <= 0 else args.timeout
         try:
             images = svc.generate(args.prompt, args.negative, config=config,
@@ -227,6 +309,9 @@ def main():
         images[0].save(output_path)
 
         print(json.dumps({"success": True, "output": output_path}))
+    except grpc.RpcError as e:
+        print(json.dumps({"success": False, "error": _format_rpc_error(e)}), file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
         print(json.dumps({"success": False, "error": str(e)}), file=sys.stderr)
         sys.exit(1)

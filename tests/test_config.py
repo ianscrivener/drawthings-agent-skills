@@ -20,7 +20,7 @@ def test_default_config_roundtrips():
     assert cfg.StartHeight() == 512 // 64
     assert cfg.BatchCount() == 1
     assert cfg.BatchSize() == 1
-    assert cfg.Model().decode() == "sd_v1.5_f16.ckpt"
+    assert cfg.Model().decode() == DEFAULT_CONFIG["model"]
     assert cfg.Upscaler() is None
     assert cfg.FaceRestoration() is None
 

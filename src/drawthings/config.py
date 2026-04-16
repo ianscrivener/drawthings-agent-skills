@@ -21,7 +21,7 @@ DEFAULT_CONFIG = {
     "seed": -1,
     "batch_size": 1,
     "shift": 1.0,
-    "model": "sd_v1.5_f16.ckpt",
+    "model": "z_image_turbo_1.0_i8x.ckpt",
     "height": 512,
     "tiled_diffusion": False,
     "diffusion_tile_height": 1024,

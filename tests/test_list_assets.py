@@ -42,6 +42,26 @@ def test_format_rpc_error_for_socket_closed_unavailable():
     assert "TLS=On" in message
 
 
+def test_format_rpc_error_for_server_preface_unavailable():
+    exc = _FakeRpcError(
+        grpc.StatusCode.UNAVAILABLE,
+        "error reading server preface: http2: frame too large",
+    )
+    message = list_assets._format_rpc_error(exc)
+    assert "Protocol=gRPC" in message
+    assert "Compression=Off" in message
+
+
+def test_format_rpc_error_for_network_unreachable_unavailable():
+    exc = _FakeRpcError(
+        grpc.StatusCode.UNAVAILABLE,
+        "dial tcp 127.0.0.1:7859: connect: network is unreachable",
+    )
+    message = list_assets._format_rpc_error(exc)
+    assert "Could not connect to Draw Things gRPC server" in message
+    assert "--host" in message
+
+
 def test_format_rpc_error_default_branch():
     exc = _FakeRpcError(grpc.StatusCode.INVALID_ARGUMENT, "bad request")
     assert list_assets._format_rpc_error(exc) == "gRPC INVALID_ARGUMENT: bad request"
